@@ -1,5 +1,8 @@
 
 /BACKUP/
+/app/
+/app/vendor/
+/app/composer.lock
 /.vscode/
 /MY-ASSETS/
 silky-subaccounts.code-workspace

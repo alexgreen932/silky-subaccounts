@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Services\WooCommerce;
+// namespace App\Services\WooCommerce;
 
 class SetLoyaltyLevel {
 
@@ -51,3 +51,5 @@ class SetLoyaltyLevel {
         update_user_meta($user_id, '_loyalty_level_3', sanitize_text_field($value));
     }
 }
+
+$set_loyalty_level = new SetLoyaltyLevel();

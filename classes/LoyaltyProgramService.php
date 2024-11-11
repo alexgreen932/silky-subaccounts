@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\WooCommerce;
+// namespace App\Services\WooCommerce;
 
-use WC_Order;
+// use WC_Order;
 
 class LoyaltyProgramService
 {
@@ -384,4 +384,6 @@ class LoyaltyProgramService
 
 
 }
+
+$loyalty_program_service = new LoyaltyProgramService();
 

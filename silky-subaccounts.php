@@ -28,6 +28,9 @@ if (!function_exists('dd')) {
 
 add_action('plugins_loaded', 'my_custom_plugin_init', 20);
 
+// require plugin_dir_path( __FILE__ ) . 'app/Services/WooCommerce/LoyaltyProgram/unit.php';
+// include '/app/Services/WooCommerce/LoyaltyProgram/unit.php';
+
 function my_custom_plugin_init() {
     if (class_exists('WooCommerce')) {
         remove_shortcode('sfwc_add_subaccount_shortcode');
@@ -41,4 +44,6 @@ function my_custom_plugin_init() {
 
 include 'classes/CompaniesSubaccounts.php';
 include 'classes/LoyaltyProgramDiscounts.php';
-// include 'classes/dev.php';
+include 'classes/LoyaltyProgramService.php';
+include 'classes/SetLoyaltyLevel.php';
+//include 'classes/dev.php';
