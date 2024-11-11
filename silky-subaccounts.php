@@ -40,4 +40,5 @@ function my_custom_plugin_init() {
 
 
 include 'classes/CompaniesSubaccounts.php';
+include 'classes/LoyaltyProgramDiscounts.php';
 // include 'classes/dev.php';
