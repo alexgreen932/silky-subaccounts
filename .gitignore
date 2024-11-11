@@ -1,0 +1,10 @@
+
+/BACKUP/
+/.vscode/
+/MY-ASSETS/
+silky-subaccounts.code-workspace
+debug.log
+.directory
+.eslintrc
+.megaignore
+.stylelintrc.json
