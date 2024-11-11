@@ -5,6 +5,15 @@
  */
 class LoyaltyProgramDiscounts
 {
+
+    /**
+     * Constructor for the LoyaltyProgramDiscounts class.//+
+     * //+
+     * Initializes the class by setting up WordPress hooks to add custom functionality//+
+     * related to loyalty program discounts in WooCommerce.//+
+     * //+
+     * @return void//+
+     *///+
     public function __construct()
     {
         // Add custom tab to product data panel
@@ -19,7 +28,12 @@ class LoyaltyProgramDiscounts
         add_action('admin_post_save_loyalty_discounts', [$this, 'save_loyalty_discounts']);
     }
 
-    // Add a custom tab to the product data panel
+
+    /**
+     * Add a custom tab to the product data panel
+     * @param mixed $tabs
+     * @return mixed
+     */
     public function add_loyalty_program_tab($tabs)
     {
         $tabs['loyalty_program'] = [
@@ -30,7 +44,10 @@ class LoyaltyProgramDiscounts
         return $tabs;
     }
 
-    // Content for the Loyalty Program Discounts tab
+    /**
+     * Content for the Loyalty Program Discounts tab
+     * @return void
+     */
     public function loyalty_program_tab_content()
     {
         ?>
@@ -70,7 +87,11 @@ class LoyaltyProgramDiscounts
         <?php
     }
 
-    // Save custom discount fields in the product page
+    /**
+     * Save custom discount fields in the product page
+     * @param mixed $post_id
+     * @return void
+     */
     public function save_loyalty_discount_fields($post_id)
     {
         for ($i = 1; $i <= 3; $i++) {
@@ -84,7 +105,10 @@ class LoyaltyProgramDiscounts
         }
     }
 
-    // Add submenu page for mass editing discounts
+    /**
+     * Add submenu page for mass editing discounts
+     * @return void
+     */
     public function add_submenu()
     {
         add_submenu_page(
@@ -97,7 +121,10 @@ class LoyaltyProgramDiscounts
         );
     }
 
-    // Display the Loyalty Program discount management page
+    /**
+     * Display the Loyalty Program discount management page
+     * @return void
+     */
     public function lp_submenu_page()
     {
         ?>
@@ -116,7 +143,10 @@ class LoyaltyProgramDiscounts
         <?php
     }
 
-    // Display discounts for each product in the submenu
+    /**
+     * Display discounts for each product in the submenu
+     * @return void
+     */
     public function render_product_discounts()
     {
         $products = wc_get_products(['limit' => -1]); // Get all products
@@ -178,7 +208,10 @@ class LoyaltyProgramDiscounts
     }
     
 
-    // Handle saving loyalty discounts from the mass edit submenu
+    /**
+     * Handle saving loyalty discounts from the mass edit submenu
+     * @return never
+     */
     public function save_loyalty_discounts()
     {
         if (!current_user_can('manage_options')) {

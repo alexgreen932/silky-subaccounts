@@ -14,6 +14,10 @@ class CompaniesSubaccounts
         add_action('wp', [$this, 'switch_to_parent']);
     }
 
+    /**
+     * Summary of register_shortcodes
+     * @return void
+     */
     public function register_shortcodes()
     {
         //removes the original shortcode to avoid conflicts
@@ -26,6 +30,10 @@ class CompaniesSubaccounts
         add_shortcode('sfwc_account_switcher', [$this, 'account_switcher_shortcode']);
     }
 
+    /**
+     * Summary of sfwc_add_new_subaccount_form_content
+     * @return mixed
+     */
     public function sfwc_add_new_subaccount_form_content()
     {
         // dd($this->is_subaccount());//todo rm
@@ -62,12 +70,20 @@ class CompaniesSubaccounts
         return ob_get_clean();
     }
 
+    /**
+     * Summary of list_subaccounts_shortcode
+     * @return mixed
+     */
     private function subaccount_limit_reached($user_id, $limit)
     {
         $existing_subaccounts = get_user_meta($user_id, 'sfwc_children', true) ?: [];
         return count($existing_subaccounts) >= $limit;
     }
 
+    /**
+     * Summary of list_subaccounts_shortcode
+     * @return mixed
+     */
     private function get_subaccount_form_data()
     {
         return [
@@ -80,6 +96,11 @@ class CompaniesSubaccounts
         ];
     }
 
+
+    /**
+     * Summary of list_subaccounts_shortcode
+     * @return mixed
+     */
     private function render_form_field($name, $label, $required = false, $form_data = [])
     {
         $value = esc_attr($form_data[$name] ?? '');
@@ -90,6 +111,10 @@ class CompaniesSubaccounts
         echo "<input type='text' name='{$name}' id='{$name}' value='{$value}' {$required_attr} style='width:100%;'></div>";
     }
 
+    /**
+     * Summary of handle_subaccount_form_submission
+     * @return void
+     */
     public function handle_subaccount_form_submission()
     {
         if (!isset($_POST['sfwc_add_subaccount_frontend']) || !wp_verify_nonce($_POST['sfwc_add_subaccount_frontend'], 'sfwc_add_subaccount_frontend_action')) {
@@ -123,6 +148,10 @@ class CompaniesSubaccounts
         wc_add_notice(__('Subaccount created successfully!', 'subaccounts-for-woocommerce'), 'success');
     }
 
+    /**
+     * Summary of is_subaccount
+     * @return bool
+     */
     public function show_custom_fields_in_profile($user)
     {
         if (in_array('subscriber', $user->roles)) {
@@ -150,6 +179,10 @@ class CompaniesSubaccounts
         }
     }
 
+    /**
+     * Summary of get_parent_account_link
+     * @return string
+     */
     public function list_subaccounts_shortcode()
     {
         // dd($this->is_subaccount());//todo rm
@@ -198,6 +231,10 @@ class CompaniesSubaccounts
         return ob_get_clean();
     }
 
+    /**
+     * Summary of get_parent_account_link
+     * @return string
+     */
     public function account_switcher_shortcode()
     {
         if (!is_user_logged_in()) {
@@ -247,8 +284,10 @@ class CompaniesSubaccounts
     }
 
 
-
-
+    /**
+     * Summary of is_subaccount
+     * @return bool
+     */
     private function is_subaccount()
     {
         $current_user_id = get_current_user_id();
@@ -270,6 +309,10 @@ class CompaniesSubaccounts
     }
 
 
+    /**
+     * Summary of get_parent_account_link
+     * @return mixed
+     */
     private function get_parent_account_link()
     {
         $current_user_id = get_current_user_id();
@@ -297,6 +340,10 @@ class CompaniesSubaccounts
         return '';
     }
 
+    /**
+     * Summary of switch_to_subaccount
+     * @return void
+     */
     public function switch_to_subaccount()
     {
         if (isset($_POST['switch_to_subaccount']) && isset($_POST['sfwc_frontend_children'])) {
@@ -318,6 +365,10 @@ class CompaniesSubaccounts
         }
     }
 
+    /**
+     * Summary of switch_to_parent
+     * @return void
+     */
     public function switch_to_parent()
     {
         if (isset($_GET['user_id']) && $this->is_subaccount()) {
@@ -338,8 +389,6 @@ class CompaniesSubaccounts
             }
         }
     }
-
-
 
 }
 
