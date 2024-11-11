@@ -12,6 +12,20 @@ Version: 1.0.0
 Author URI: http://al.ex/
 */
 
+
+//debug function
+if (!function_exists('dd')) {
+    function dd($var, $die=true) {
+        echo '<pre>';
+            var_dump($var);
+        echo '</pre>';
+        if ($die) {
+            die();
+        }
+        
+    }
+}
+
 add_action('plugins_loaded', 'my_custom_plugin_init', 20);
 
 function my_custom_plugin_init() {
@@ -25,4 +39,5 @@ function my_custom_plugin_init() {
 }
 
 
-include 'classes/companiesSubaccounts.php';
+include 'classes/CompaniesSubaccounts.php';
+// include 'classes/dev.php';
