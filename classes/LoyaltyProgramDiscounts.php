@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /**
  * Summary of LoyaltyProgramDiscounts
@@ -23,8 +23,8 @@ class LoyaltyProgramDiscounts
     public function add_loyalty_program_tab($tabs)
     {
         $tabs['loyalty_program'] = [
-            'label'    => __('Loyalty Program Discounts', 'woocommerce'),
-            'target'   => 'loyalty_program_discounts_data',
+            'label' => __('Loyalty Program Discounts', 'textdomain'),
+            'target' => 'loyalty_program_discounts_data',
             'priority' => 99,
         ];
         return $tabs;
@@ -36,7 +36,7 @@ class LoyaltyProgramDiscounts
         ?>
         <div id="loyalty_program_discounts_data" class="panel woocommerce_options_panel">
             <div class="options_group">
-                <h2><?php _e('Loyalty Program Discounts', 'woocommerce'); ?></h2>
+                <h2><?php _e('Loyalty Program Discounts', 'textdomain'); ?></h2>
 
                 <?php
                 // Common product discounts
@@ -44,9 +44,9 @@ class LoyaltyProgramDiscounts
                 for ($i = 1; $i <= 3; $i++) {
                     woocommerce_wp_text_input([
                         'id' => "_lp_discount_common_product_{$i}",
-                        'label' => __("Discount Level $i", 'woocommerce'),
+                        'label' => __("Discount Level $i", 'textdomain'),
                         'desc_tip' => true,
-                        'description' => __('Discount for common product', 'woocommerce'),
+                        'description' => __('Discount for common product', 'textdomain'),
                         'type' => 'number',
                         'custom_attributes' => ['step' => '1', 'min' => '0']
                     ]);
@@ -57,9 +57,9 @@ class LoyaltyProgramDiscounts
                 for ($i = 1; $i <= 3; $i++) {
                     woocommerce_wp_text_input([
                         'id' => "_lp_discount_variative_product_{$i}",
-                        'label' => __("Discount Level $i", 'woocommerce'),
+                        'label' => __("Discount Level $i", 'textdomain'),
                         'desc_tip' => true,
-                        'description' => __('Discount for each variation', 'woocommerce'),
+                        'description' => __('Discount for each variation', 'textdomain'),
                         'type' => 'number',
                         'custom_attributes' => ['step' => '1', 'min' => '0']
                     ]);
@@ -120,26 +120,63 @@ class LoyaltyProgramDiscounts
     public function render_product_discounts()
     {
         $products = wc_get_products(['limit' => -1]); // Get all products
-
-        foreach ($products as $product) {
-            echo '<h2>' . esc_html($product->get_name()) . '</h2>';
-            $product_id = $product->get_id();
-
-            if ($product->is_type('variable')) {
-                echo '<h4>Variable Product Discounts</h4>';
-                for ($i = 1; $i <= 3; $i++) {
-                    $value = get_post_meta($product_id, "_lp_discount_variative_product_{$i}", true);
-                    echo '<input type="number" name="lp_variative_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" />';
-                }
-            } else {
-                echo '<h4>Common Product Discounts</h4>';
-                for ($i = 1; $i <= 3; $i++) {
-                    $value = get_post_meta($product_id, "_lp_discount_common_product_{$i}", true);
-                    echo '<input type="number" name="lp_common_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" />';
-                }
-            }
-        }
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Loyalty Program Discounts</h1>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th scope="col" class="manage-column column-product_id">Id</th>
+                        <th scope="col" class="manage-column column-title"><?php _e('Product', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-1"><?php _e('Level 1', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-2"><?php _e('Level 2', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-3"><?php _e('Level 3', 'textdomain') ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($products as $product) : ?>
+                        <tr>
+                            <?php
+                            $product_id = $product->get_id();
+                            echo '<td class="product_id column-product_id">' . esc_html($product_id) . '</td>';
+                            echo '<td class="title column-title">' . esc_html($product->get_name()) . '</td>';
+                            
+                            // Variable product discounts
+                            if ($product->is_type('variable')) {
+                                for ($i = 1; $i <= 3; $i++) {
+                                    $value = get_post_meta($product_id, "_lp_discount_variative_product_{$i}", true);
+                                    echo '<td class="column-level-' . esc_attr($i) . '">';
+                                    echo '<input type="number" name="lp_variative_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" class="small-text" />';
+                                    echo '</td>';
+                                }
+                            } 
+                            // Simple product discounts
+                            else {
+                                for ($i = 1; $i <= 3; $i++) {
+                                    $value = get_post_meta($product_id, "_lp_discount_common_product_{$i}", true);
+                                    echo '<td class="column-level-' . esc_attr($i) . '">';
+                                    echo '<input type="number" name="lp_common_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" class="small-text" />';
+                                    echo '</td>';
+                                }
+                            }
+                            ?>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="col" class="manage-column column-product_id">Id</th>
+                        <th scope="col" class="manage-column column-title"><?php _e('Product', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-1"><?php _e('Level 1', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-2"><?php _e('Level 2', 'textdomain') ?></th>
+                        <th scope="col" class="manage-column column-level-3"><?php _e('Level 3', 'textdomain') ?></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <?php
     }
+    
 
     // Handle saving loyalty discounts from the mass edit submenu
     public function save_loyalty_discounts()

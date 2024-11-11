@@ -23,7 +23,7 @@ class SetLoyaltyLevel {
         <h3><?php _e("Программа лояльности", "textdomain"); ?></h3>
         <table class="form-table">
             <tr>
-                <th><label for="loyalty_level_3"><?php _e("Назначить уровень 3 программы лояльности", "textdomain"); ?></label></th>
+                <th><label for="loyalty_level_3"><?php _e("Назначить уровень 3 программы лояльности", "__('Discount for each variation', 'textdomain')"); ?></label></th>
                 <td>
                     <input type="checkbox" name="loyalty_level_3" id="loyalty_level_3" value="1" <?php checked($loyalty_level_3, '1'); ?> />
                     <span class="description"><?php _e("Установите этот флажок, чтобы назначить уровень 3 этому клиенту.", "textdomain"); ?></span>
