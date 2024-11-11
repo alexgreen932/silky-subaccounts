@@ -1,8 +1,8 @@
-<?php
+<?php 
 
-// namespace App\Services\WooCommerce;
-
-
+/**
+ * Summary of LoyaltyProgramDiscounts
+ */
 class LoyaltyProgramDiscounts
 {
     public function __construct()
@@ -11,10 +11,12 @@ class LoyaltyProgramDiscounts
         add_filter('woocommerce_product_data_tabs', [$this, 'add_loyalty_program_tab'], 99);
         // Display content in the custom tab
         add_action('woocommerce_product_data_panels', [$this, 'loyalty_program_tab_content']);
-        // Save custom fields
-        add_action('woocommerce_process_product_meta', [$this, 'save_loyalty_discount_fields']);        
+        // Save custom fields in product page
+        add_action('woocommerce_process_product_meta', [$this, 'save_loyalty_discount_fields']);
         // Add submenu for loyalty program management
         add_action('admin_menu', [$this, 'add_submenu'], 99);
+        // Handle save action in submenu
+        add_action('admin_post_save_loyalty_discounts', [$this, 'save_loyalty_discounts']);
     }
 
     // Add a custom tab to the product data panel
@@ -31,7 +33,6 @@ class LoyaltyProgramDiscounts
     // Content for the Loyalty Program Discounts tab
     public function loyalty_program_tab_content()
     {
-        global $post;
         ?>
         <div id="loyalty_program_discounts_data" class="panel woocommerce_options_panel">
             <div class="options_group">
@@ -69,7 +70,7 @@ class LoyaltyProgramDiscounts
         <?php
     }
 
-    // Save custom discount fields when the product is saved
+    // Save custom discount fields in the product page
     public function save_loyalty_discount_fields($post_id)
     {
         for ($i = 1; $i <= 3; $i++) {
@@ -83,26 +84,17 @@ class LoyaltyProgramDiscounts
         }
     }
 
-    // Add submenu page for mass changing discounts
+    // Add submenu page for mass editing discounts
     public function add_submenu()
     {
         add_submenu_page(
-            'woocommerce', // WooCommerce submenu page
-            'Loyalty Program', // Page title
-            'Loyalty Program', // Menu title
-            'manage_options', // Capability required to access the page
-            'lp-submenu-page', // Page slug
-            [$this, 'lp_submenu_page'] // Callback function to render the page
+            'woocommerce',
+            'Loyalty Program',
+            'Loyalty Program',
+            'manage_options',
+            'lp-submenu-page',
+            [$this, 'lp_submenu_page']
         );
-
-        // Register settings
-        add_action('admin_init', [$this, 'register_settings']);
-    }
-
-    // Placeholder for registering settings (to prevent the fatal error)
-    public function register_settings()
-    {
-        // Settings registration code would go here if needed
     }
 
     // Display the Loyalty Program discount management page
@@ -111,9 +103,17 @@ class LoyaltyProgramDiscounts
         ?>
         <h1>Discounts</h1>
         <p>Manage discounts for all products below:</p>
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+            <input type="hidden" name="action" value="save_loyalty_discounts">
+            <?php
+            // Display product discounts for editing
+            $this->render_product_discounts();
+            ?>
+            <p>
+                <button type="submit" class="button button-primary">Save Changes</button>
+            </p>
+        </form>
         <?php
-        // Display list of products with discount fields for each
-        $this->render_product_discounts();
     }
 
     // Display discounts for each product in the submenu
@@ -123,23 +123,52 @@ class LoyaltyProgramDiscounts
 
         foreach ($products as $product) {
             echo '<h2>' . esc_html($product->get_name()) . '</h2>';
-            // Render fields depending on product type
+            $product_id = $product->get_id();
+
             if ($product->is_type('variable')) {
                 echo '<h4>Variable Product Discounts</h4>';
                 for ($i = 1; $i <= 3; $i++) {
-                    echo '<input type="number" name="lp_variative_product[' . esc_attr($product->get_id()) . '][' . $i . ']" value="0" step="1" />';
+                    $value = get_post_meta($product_id, "_lp_discount_variative_product_{$i}", true);
+                    echo '<input type="number" name="lp_variative_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" />';
                 }
             } else {
                 echo '<h4>Common Product Discounts</h4>';
                 for ($i = 1; $i <= 3; $i++) {
-                    echo '<input type="number" name="lp_common_product[' . esc_attr($product->get_id()) . '][' . $i . ']" value="0" step="1" />';
+                    $value = get_post_meta($product_id, "_lp_discount_common_product_{$i}", true);
+                    echo '<input type="number" name="lp_common_product[' . esc_attr($product_id) . '][' . $i . ']" value="' . esc_attr($value) . '" step="1" />';
                 }
             }
         }
     }
+
+    // Handle saving loyalty discounts from the mass edit submenu
+    public function save_loyalty_discounts()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have permission to access this page.'));
+        }
+
+        // Check if discount values are set, then save them
+        if (isset($_POST['lp_common_product'])) {
+            foreach ($_POST['lp_common_product'] as $product_id => $discounts) {
+                foreach ($discounts as $level => $value) {
+                    update_post_meta($product_id, "_lp_discount_common_product_{$level}", sanitize_text_field($value));
+                }
+            }
+        }
+
+        if (isset($_POST['lp_variative_product'])) {
+            foreach ($_POST['lp_variative_product'] as $product_id => $discounts) {
+                foreach ($discounts as $level => $value) {
+                    update_post_meta($product_id, "_lp_discount_variative_product_{$level}", sanitize_text_field($value));
+                }
+            }
+        }
+
+        // Redirect back to the submenu page after saving
+        wp_redirect(admin_url('admin.php?page=lp-submenu-page&message=1'));
+        exit;
+    }
 }
 
 new LoyaltyProgramDiscounts();
-
-
-
