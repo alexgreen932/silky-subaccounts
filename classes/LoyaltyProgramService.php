@@ -249,12 +249,15 @@ class LoyaltyProgramService
     /**
      * Calculate discounted price based on user's loyalty level.
      *
+     * changing notes: Due to new conditions, discount calculated using written values saved in product metas
+     * 
      * @param float $price The original price.
      * @param WC_Product $product The product object.
      * @param int $loyalty_level The loyalty level of the user.
      * @return float The discounted price.
      */
     //todo change to private
+
     function get_discounted_price($price, $product, $loyalty_level)
     {
         // Ensure $price is a valid number, fallback to the regular price if it’s not
@@ -267,7 +270,7 @@ class LoyaltyProgramService
         // Check for simple (non-variable) product discount
         if (!$product->is_type('variable')) {
             if ($loyalty_level > 0) {
-                // Retrieve the discount value from product meta for the specified loyalty level
+                //metas are '_lp_discount_common_product_+loyalty_level'
                 $discount_meta_key = "_lp_discount_common_product_{$loyalty_level}";
                 $discount = $product->get_meta($discount_meta_key);
 
@@ -291,8 +294,6 @@ class LoyaltyProgramService
         // Calculate the discounted price, ensuring the final value does not go below zero
         return max(0, $price - $discount);
     }
-
-
 
 
 
