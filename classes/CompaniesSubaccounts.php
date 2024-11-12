@@ -21,9 +21,10 @@ class CompaniesSubaccounts
     public function register_shortcodes()
     {
         //removes the original shortcode to avoid conflicts
-        remove_shortcode('sfwc_add_subaccount_shortcode');
+        // remove_shortcode('sfwc_add_subaccount_shortcode');
         //add new shortcode to display the form
-        add_shortcode('sfwc_add_subaccount_shortcode', [$this, 'sfwc_add_new_subaccount_form_content']);
+        // add_shortcode('sfwc_add_subaccount_shortcode', [$this, 'sfwc_add_new_subaccount_form_content']);
+        
         //add extra shortcodes to manage
         add_shortcode('sfwc_list_subaccounts', [$this, 'list_subaccounts_shortcode']);
         add_shortcode('sfwc_edit_subaccount_form', [$this, 'edit_subaccount_form_shortcode']);
