@@ -224,7 +224,7 @@ class LoyaltyProgramService
      *
      * @return array
      */
-    //todo remove then it's old structure
+    //todo remove after changing with new way of storing and retrieving discount data
     private function get_discount_structure()
     {
         return [
@@ -247,41 +247,6 @@ class LoyaltyProgramService
 
 
     /**
-     * Define discount structure for products.
-     * New structure due to products can be a lot or it can be iterated from WC product list(for samples now)
-     *
-     * @return array
-     */
-
-
-    private function discount_structure()
-    {
-        //NOTE: This sample array for testing calculator, it works using SKU 
-        //Instead of it it's possible to iterate WC products if to do discount values will be in product as custom fields. It will make easier logic here, and easy to change discounts by admin or add new if new products will be added
-        return [
-            [
-                'sku' => 'CAPPUCCINO_200G',
-                'variation' => false,
-                'discounts' => [
-                    1 => 6,
-                    2 => 10,
-                    3 => 20,
-                ],
-            ],
-            [
-                'sku' => 'TEST_FILTER',
-                'variation' => true,
-                'discounts' => [
-                    1 => ['200g' => 6, '1kg' => 30],
-                    2 => ['200g' => 10, '1kg' => 60],
-                    3 => ['200g' => 20, '1kg' => 100],
-                ],
-            ],
-        ];
-    }
-
-
-    /**
      * Calculate discounted price based on user's loyalty level.
      *
      * @param float $price The original price.
@@ -292,46 +257,42 @@ class LoyaltyProgramService
     //todo change to private
     function get_discounted_price($price, $product, $loyalty_level)
     {
-        // Fallback to the product's base price if $price is not provided or is zero
-        if ($price <= 0) {
-            $price = $product->get_regular_price(); // or use $product->get_price() for current price
+        // Ensure $price is a valid number, fallback to the regular price if it’s not
+        if (!is_numeric($price) || $price <= 0) {
+            $price = (float) $product->get_regular_price(); // Ensure price is a float
         }
 
-        $discount_structure = $this->discount_structure();
         $discount = 0;
-        $discount_found = false;
 
-        foreach ($discount_structure as $item) {
-            if ($item['sku'] === $product->get_sku()) {
-                if ($item['variation'] && $product->is_type('variable')) {
-                    $weight = $product->get_weight(); // Adjust to use actual variation criteria
-                    if (isset($item['discounts'][$loyalty_level][$weight])) {
-                        $discount = $item['discounts'][$loyalty_level][$weight];
-                        $discount_found = true;
-                    }
+        // Check for simple (non-variable) product discount
+        if (!$product->is_type('variable')) {
+            if ($loyalty_level > 0) {
+                // Retrieve the discount value from product meta for the specified loyalty level
+                $discount_meta_key = "_lp_discount_common_product_{$loyalty_level}";
+                $discount = $product->get_meta($discount_meta_key);
+
+                // Ensure discount is a valid number, else set it to zero
+                if (!is_numeric($discount)) {
+                    $discount = 0;
                 } else {
-                    // Check if discount exists for the specified loyalty level
-                    if (isset($item['discounts'][$loyalty_level])) {
-                        $discount = $item['discounts'][$loyalty_level];
-                        $discount_found = true;
-                    }
+                    $discount = (float) $discount; // Cast to float for calculations
                 }
-                break; // Only apply the first matching discount
             }
+        } else {
+            // For variable products, handle discount logic for variations if needed
+            return $price; // No discount applied for variable products in this example
         }
 
-        // Return the original price if no discount was found
-        if (!$discount_found) {
+        // Return the base price if no valid discount was found
+        if ($discount <= 0) {
             return $price;
         }
 
-        return max(0, $price - $discount); // Ensure the price does not go below 0
-        //todo rm for debug only
-        //discount
-        //return $discount;
-        //level
-        // return $loyalty_level;
+        // Calculate the discounted price, ensuring the final value does not go below zero
+        return max(0, $price - $discount);
     }
+
+
 
 
 
