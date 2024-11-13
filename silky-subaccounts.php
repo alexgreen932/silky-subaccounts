@@ -51,6 +51,7 @@ include 'classes/SetLoyaltyLevel.php';
 include 'classes/CompanyRegister.php';
 include 'classes/CompanyProfile.php';
 include 'classes/CompanySwitcher.php';
+include 'classes/EmailOverrideForSubaccounts.php';
 
 
 //include 'classes/dev.php';
