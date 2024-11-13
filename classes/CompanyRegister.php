@@ -16,8 +16,12 @@ class CompanyRegister
 
     public function sfwc_add_new_subaccount_form_content()
     {
+
+
+        //return if subbaccount
         if ($this->is_subaccount()) {
-            return '<a href="' . esc_url($this->get_parent_account_link()) . '">' . __('Go back to parent account', 'subaccounts-for-woocommerce') . '</a>';
+            return __('You cannot view this content as you are a subaccount.', 'subaccounts-for-woocommerce') .
+                do_shortcode('[sfwc_account_switcher]');
         }
 
         $parent_user_id = get_current_user_id();
@@ -28,6 +32,7 @@ class CompanyRegister
         }
 
         $form_data = $this->get_subaccount_form_data();
+
 
         ob_start();
         ?>
@@ -129,26 +134,6 @@ class CompanyRegister
         return $user->user_email;
     }
 
-    private function is_subaccount()
-    {
-        $current_user_id = get_current_user_id();
-
-        // Check if this user ID appears in any other user's 'sfwc_children' meta
-        $args = [
-            'meta_key' => 'sfwc_children',
-            'meta_value' => '"' . $current_user_id . '"', // Meta query will look for serialized value in array
-            'meta_compare' => 'LIKE',
-            'number' => 1, // Only need to find one match
-            'fields' => 'ID',
-        ];
-
-        $parent_query = new WP_User_Query($args);
-        $parent_users = $parent_query->get_results();
-
-        // If any parent user is found, then this is a subaccount
-        return !empty($parent_users);
-    }
-
     private function get_subaccount_form_data()
     {
         return [
@@ -160,6 +145,28 @@ class CompanyRegister
             'billing_accaunt_id' => sanitize_text_field($_POST['billing_accaunt_id'] ?? ''),
         ];
     }
+
+
+    private function is_subaccount()
+    {
+        $current_user_id = get_current_user_id();
+        $user_query = new WP_User_Query([
+            'meta_key' => 'sfwc_children',
+            'fields' => 'all_with_meta'
+        ]);
+        $users = $user_query->get_results();
+
+        foreach ($users as $user) {
+            $children = get_user_meta($user->ID, 'sfwc_children', true);
+            if (is_array($children) && in_array($current_user_id, $children)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    
 }
 
 new CompanyRegister();
