@@ -46,7 +46,11 @@ function my_custom_plugin_init() {
 include 'classes/LoyaltyProgramDiscounts.php';
 include 'classes/LoyaltyProgramService.php';
 include 'classes/SetLoyaltyLevel.php';
-//sibaccounts
-include 'classes/CompaniesSubaccounts.php';
+//subaccounts divided by parts
+// include 'classes/CompaniesSubaccounts.php';//maybe remove and split in smaller files
 include 'classes/CompanyRegister.php';
+include 'classes/CompanyProfile.php';
+include 'classes/CompanySwitcher.php';
+
+
 //include 'classes/dev.php';

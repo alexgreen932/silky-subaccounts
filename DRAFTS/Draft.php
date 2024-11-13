@@ -1,6 +1,5 @@
 <?php
 
-<?php
 
 class CompanyRegister
 {
@@ -51,7 +50,8 @@ class CompanyRegister
             <?php $this->render_form_field('billing_phone', 'Phone', false, $form_data); ?>
             <?php $this->render_form_field('billing_last_name', 'Last Name', false, $form_data); ?>
 
-            <input type="submit" value="<?php echo esc_attr__('Add Subaccount', 'subaccounts-for-woocommerce'); ?>" style="padding:10px 40px;">
+            <input type="submit" value="<?php echo esc_attr__('Add Subaccount', 'subaccounts-for-woocommerce'); ?>"
+                style="padding:10px 40px;">
         </form>
         <?php
         return ob_get_clean();
@@ -86,17 +86,50 @@ class CompaniesSubaccounts
             ?>
             <h3><?php _e('Subaccount Information', 'subaccounts-for-woocommerce'); ?></h3>
             <table class="form-table">
-                <tr><th><label><?php _e('Company', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'company', true)); ?></td></tr>
-                <tr><th><label><?php _e('Tax Info', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_tax_info', true)); ?></td></tr>
-                <tr><th><label><?php _e('Bank ID', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_bank_id', true)); ?></td></tr>
-                <tr><th><label><?php _e('Account ID', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_accaunt_id', true)); ?></td></tr>
-                <tr><th><label><?php _e('Display Name', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'account_display_name', true)); ?></td></tr>
-                <tr><th><label><?php _e('Billing Address', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_address_1', true)); ?></td></tr>
-                <tr><th><label><?php _e('City', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_city', true)); ?></td></tr>
-                <tr><th><label><?php _e('State', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_state', true)); ?></td></tr>
-                <tr><th><label><?php _e('Postcode', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_postcode', true)); ?></td></tr>
-                <tr><th><label><?php _e('Phone', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_phone', true)); ?></td></tr>
-                <tr><th><label><?php _e('Last Name', 'subaccounts-for-woocommerce'); ?></label></th><td><?php echo esc_attr(get_user_meta($user->ID, 'billing_last_name', true)); ?></td></tr>
+                <tr>
+                    <th><label><?php _e('Company', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'company', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Tax Info', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_tax_info', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Bank ID', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_bank_id', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Account ID', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_accaunt_id', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Display Name', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'account_display_name', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Billing Address', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_address_1', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('City', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_city', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('State', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_state', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Postcode', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_postcode', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Phone', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_phone', true)); ?></td>
+                </tr>
+                <tr>
+                    <th><label><?php _e('Last Name', 'subaccounts-for-woocommerce'); ?></label></th>
+                    <td><?php echo esc_attr(get_user_meta($user->ID, 'billing_last_name', true)); ?></td>
+                </tr>
             </table>
             <?php
         }
