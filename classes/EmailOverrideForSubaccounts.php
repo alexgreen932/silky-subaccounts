@@ -37,6 +37,4 @@ class EmailOverrideForSubaccounts
 new EmailOverrideForSubaccounts();
 
 
-// Instantiate the class to activate the hook
-new EmailOverrideForSubaccounts();
 
