@@ -1,5 +1,7 @@
 <?php
 
+namespace SilkyDrum\WooCommerce;
+
 class CompanyProfile
 {
     public function __construct()

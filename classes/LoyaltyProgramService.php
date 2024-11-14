@@ -1,38 +1,64 @@
 <?php
 
-// namespace App\Services\WooCommerce;
+namespace SilkyDrum\WooCommerce;
 
-// use WC_Order;
-
-class LoyaltyProgramService
+class LoyaltyProgramService extends LoyaltyProgramDiscounts
 {
+    // public function __construct()
+    // {
+    //     add_action('woocommerce_cart_calculate_fees', [$this, 'apply_loyalty_discount']);
+    //     add_action('woocommerce_order_status_completed', [$this, 'update_loyalty_level'], 10, 1);
+    //     add_filter('woocommerce_email_order_meta', [$this, 'add_loyalty_info_to_email'], 10, 3);
+    //     add_filter('woocommerce_product_get_price', [$this, 'change_price'], 10, 2);
+    //     add_filter('woocommerce_product_get_sale_price', [$this, 'change_price'], 10, 2);
+    //     add_filter('woocommerce_get_price_html', [$this, 'change_price_html'], 10, 2);
+    //     // Apply discount for variations
+    //     add_filter('woocommerce_variation_prices_price', [$this, 'apply_discount_to_variation'], 10, 3);
+    //     add_filter('woocommerce_variation_prices_sale_price', [$this, 'apply_discount_to_variation'], 10, 3);
+
+
+    //     // Ensure WooCommerce recalculates variation prices when cache hash changes
+    //     add_filter('woocommerce_get_variation_prices_hash', [$this, 'update_variation_prices_hash'], 10, 3);
+    //     // Force WooCommerce to always fetch all variation prices to ensure discounts show up
+    //     add_filter('woocommerce_ajax_variation_threshold', function () {
+    //         return 100;
+    //     });
+
+    //     add_filter('woocommerce_cart_item_price', [$this, 'apply_cart_discount'], 10, 3);
+    //     add_filter('woocommerce_cart_item_subtotal', [$this, 'apply_cart_discount'], 10, 3);
+
+
+    // }
+
 
     public function __construct()
     {
-        // Hook to apply discount based on loyalty level during cart calculations
-        add_action('woocommerce_cart_calculate_fees', [$this, 'apply_loyalty_discount']);
-
-        // Hook to update loyalty level after order is completed
-        add_action('woocommerce_order_status_completed', [$this, 'update_loyalty_level'], 10, 1);
-
-        // Hook to add loyalty level info in emails
-        add_filter('woocommerce_email_order_meta', [$this, 'add_loyalty_info_to_email'], 10, 3);
-
-        // Hook to modify product price based on loyalty level
-        add_filter('woocommerce_product_get_price', [$this, 'change_price'], 10, 2);
-        add_filter('woocommerce_product_get_sale_price', [$this, 'change_price'], 10, 2);
-
-
-        add_filter('woocommerce_get_price_html', [$this, 'change_price_html'], 10, 2);// Additional hook to ensure the displayed price is modified on product pages
+        add_action('init', [$this, 'initialize_hooks']);
     }
 
+    public function initialize_hooks()
+    {
+        // WooCommerce-specific hooks
+        add_action('woocommerce_cart_calculate_fees', [$this, 'apply_loyalty_discount']);
+        add_action('woocommerce_order_status_completed', [$this, 'update_loyalty_level'], 10, 1);
+        add_filter('woocommerce_email_order_meta', [$this, 'add_loyalty_info_to_email'], 10, 3);
+        add_filter('woocommerce_product_get_price', [$this, 'change_price'], 10, 2);
+        add_filter('woocommerce_product_get_sale_price', [$this, 'change_price'], 10, 2);
+        add_filter('woocommerce_get_price_html', [$this, 'change_price_html'], 10, 2);
+        add_filter('woocommerce_variation_prices_price', [$this, 'apply_discount_to_variation'], 10, 3);
+        add_filter('woocommerce_variation_prices_sale_price', [$this, 'apply_discount_to_variation'], 10, 3);
+        add_filter('woocommerce_get_variation_prices_hash', [$this, 'update_variation_prices_hash'], 10, 3);
+        add_filter('woocommerce_ajax_variation_threshold', function () {
+            return 100;
+        });
+        //todo remove then temperary disable cache while debugging
+        add_filter('woocommerce_get_variation_prices_hash', function ($hash, $product, $for_display) {
+            $hash[] = time(); // Makes the hash unique each time, bypassing cache
+            return $hash;
+        }, 10, 3);
 
+    }
 
-    /**
-     * Applies the loyalty discount to the cart based on the user's loyalty level.
-     *
-     * @param WC_Cart $cart
-     */
     public function apply_loyalty_discount($cart)
     {
         if (is_admin() && !defined('DOING_AJAX'))
@@ -43,36 +69,37 @@ class LoyaltyProgramService
             return;
 
         $loyalty_level = $this->get_loyalty_level($user_id);
-        $discount = $this->calculate_discount($loyalty_level, $cart);
 
-        if ($discount > 0) {
-            $cart->add_fee(__('Loyalty Program Discount', 'textdomain'), -$discount);
+        foreach ($cart->get_cart() as $cart_item) {
+            $product = $cart_item['data'];
+            if ($this->is_discounted_category($product)) {
+                $price = $product->get_price();
+                $discounted_price = $this->get_discounted_price($price, $product, $loyalty_level);
+
+                if (is_numeric($price) && is_numeric($discounted_price) && $discounted_price < $price) {
+                    $discount_amount = $price - $discounted_price;
+                    $cart->add_fee(__('Loyalty Discount', 'textdomain'), -$discount_amount * $cart_item['quantity']);
+                }
+            }
         }
     }
 
-    /**
-     * Updates the user's loyalty level after an order is completed.
-     *
-     * @param int $order_id
-     */
+    private function is_discounted_category($product)
+    {
+        $categories = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'slugs']);
+        return !empty(array_intersect(self::DISCOUNT_CATEGORIES, $categories));
+    }
+
     public function update_loyalty_level($order_id)
     {
         $order = wc_get_order($order_id);
         $user_id = $order->get_user_id();
-
         if ($user_id) {
             $new_level = $this->determine_loyalty_level($user_id);
             update_user_meta($user_id, '_loyalty_level', $new_level);
         }
     }
 
-    /**
-     * Adds loyalty level information to the order confirmation email.
-     *
-     * @param WC_Order $order
-     * @param bool $sent_to_admin
-     * @param bool $plain_text
-     */
     public function add_loyalty_info_to_email($order, $sent_to_admin, $plain_text)
     {
         $user_id = $order->get_user_id();
@@ -82,270 +109,173 @@ class LoyaltyProgramService
         }
     }
 
-    /**
-     * Gets the user's current loyalty level.
-     *
-     * @param int $user_id
-     * @return int
-     */
-    //todo change to private
-    function get_loyalty_level($user_id)
+
+    //debbb...
+
+    public function get_discounted_price($price, $product, $loyalty_level)
     {
-        $level = get_user_meta($user_id, '_loyalty_level', true);
-        // dd($level);
-        return $level ? (int) $level : 0;
-
-    }
-
-    /**
-     * Calculates the discount amount based on the loyalty level and cart items.
-     *
-     * @param int $level
-     * @param WC_Cart $cart
-     * @return float
-     */
-    //todo change to private
-    //todo more remove as it seems not need now, but need to check before rm
-    function calculate_discount($level, $cart)
-    {
-        $discount = 0;
-        $discount_structure = $this->get_discount_structure();
-
-        foreach ($cart->get_cart() as $cart_item) {
-            $product = $cart_item['data'];
-            $quantity = $cart_item['quantity'];
-
-            if (isset($discount_structure[$level])) {
-                $discounts = $discount_structure[$level];
-
-                // Assuming we're matching products by SKU for the discount
-                if ($product->get_sku() == 'CAPPUCCINO_200G' && isset($discounts['espresso']['200g'])) {
-                    $discount += $discounts['espresso']['200g'] * $quantity;
-                } elseif ($product->get_sku() == 'CAPPUCCINO_1KG' && isset($discounts['espresso']['1kg'])) {
-                    $discount += $discounts['espresso']['1kg'] * $quantity;
-                }
-
-                // Add conditions for other products and categories as needed
-            }
-        }
-        return $discount;
-    }
-
-
-    /**
-     * Determines the loyalty level based on user's order history.
-     *
-     * @param int $user_id
-     * @return int
-     */
-    public function determine_loyalty_level($user_id)
-    {
-
-        // Check if the user has been manually assigned Level 3
-        $is_manual_level_3 = get_user_meta($user_id, '_loyalty_level_3', true);
-        if ($is_manual_level_3 == '1') {
-            return 3;
-        }
-
-        $orders = wc_get_orders(['customer_id' => $user_id, 'status' => 'completed']);
-        $order_count = count($orders);
-
-        if ($order_count === 0) {
-            return 0; // No orders
-        }
-
-        // Calculate months since first order
-        $first_order_date = strtotime(end($orders)->get_date_created());
-        $months_since_first_order = (time() - $first_order_date) / (30 * 24 * 60 * 60);
-
-        // Define the loyalty levels with order and time requirements
-
-        //dev, test and debug conditions will be removed in production
-        $loyalty_levels = [
-            3 => ['orders' => 3, 'months' => 0],
-            2 => ['orders' => 2, 'months' => 0],
-            1 => ['orders' => 1, 'months' => 0],
-        ];
-
-        //todo prod conditions      
-        // $loyalty_levels = [
-        //     3 => ['orders' => 24, 'months' => 12],
-        //     2 => ['orders' => 16, 'months' => 9],
-        //     1 => ['orders' => 8, 'months' => 4],
-        // ];
-
-        // Iterate through levels in descending order to find the highest applicable level
-        foreach ($loyalty_levels as $level => $requirements) {
-            if ($order_count >= $requirements['orders'] && $months_since_first_order >= $requirements['months']) {
-                return $level;
-            }
-        }
-
-        // Default level if no criteria are met
-        return 0;
-    }
-
-
-    /**
-     * Summary of get_loyalty_data
-     * @param mixed $user_id
-     * @return array
-     */
-    public function get_loyalty_data($user_id)
-    {
-        // $loyalty_level = $this->get_loyalty_level($user_id);//todo 
-        $loyalty_level = $this->determine_loyalty_level($user_id);
-        $next_level = $loyalty_level + 1;
-        $discounts = $this->get_discount_structure();
-
-        // Example progress data to the next level
-        $progress = [
-            'months_left' => 0,  // Dynamically calculate in actual use
-            'orders_needed' => 1
-        ];
-
-        //todo for prod via array for all levels
-        // $progress = [
-        //     'months_left' => 5,  // Dynamically calculate in actual use
-        //     'orders_needed' => 8
-        // ];
-
-        return [
-            'loyalty_level' => $loyalty_level,
-            'discounts' => $discounts[$loyalty_level] ?? [],
-            'next_level' => $next_level,
-            'progress' => $progress
-        ];
-    }
-
-
-    /**
-     * Returns the discount structure for each loyalty level.
-     *
-     * @return array
-     */
-    //todo remove after changing with new way of storing and retrieving discount data
-    private function get_discount_structure()
-    {
-        return [
-            1 => [
-                'espresso' => ['200g' => 6, '1kg' => 30],
-                'filter' => ['200g' => 20, '1kg' => 100]
-            ],
-            2 => [
-                'espresso' => ['200g' => 10, '1kg' => 60],
-                'filter' => ['200g' => 40, '1kg' => 200]
-            ],
-            3 => [
-                'espresso' => ['200g' => 20, '1kg' => 100],
-                'filter' => ['200g' => 60, '1kg' => 300]
-            ],
-        ];
-
-    }
-
-
-
-    /**
-     * Calculate discounted price based on user's loyalty level.
-     *
-     * changing notes: Due to new conditions, discount calculated using written values saved in product metas
-     * 
-     * @param float $price The original price.
-     * @param WC_Product $product The product object.
-     * @param int $loyalty_level The loyalty level of the user.
-     * @return float The discounted price.
-     */
-    //todo change to private
-
-    function get_discounted_price($price, $product, $loyalty_level)
-    {
-        // Ensure $price is a valid number, fallback to the regular price if it’s not
+        return $price;//for continue work //
+        static $discount_applied = [];
+        static $parent_categories_cache = [];
+    
+        // Ensure $price is a valid number
         if (!is_numeric($price) || $price <= 0) {
-            $price = (float) $product->get_regular_price(); // Ensure price is a float
+            $price = (float) $product->get_regular_price();
         }
-
-        $discount = 0;
-
-        // Check for simple (non-variable) product discount
-        if (!$product->is_type('variable')) {
-            if ($loyalty_level > 0) {
-                //metas are '_lp_discount_common_product_+loyalty_level'
-                $discount_meta_key = "_lp_discount_common_product_{$loyalty_level}";
-                $discount = $product->get_meta($discount_meta_key);
-
-                // Ensure discount is a valid number, else set it to zero
-                if (!is_numeric($discount)) {
-                    $discount = 0;
-                } else {
-                    $discount = (float) $discount; // Cast to float for calculations
-                }
-            }
+    
+        // Retrieve parent product details if this is a variation
+        if ($product instanceof WC_Product_Variation) {
+            $product_id = $product->get_parent_id(); // Parent ID for the variation
+            $parent_product = wc_get_product($product_id); // Load the actual parent product
         } else {
-            // For variable products, handle discount logic for variations if needed
-            return $price; // No discount applied for variable products in this example
+            $product_id = $product->get_id();
+            $parent_product = $product;
         }
-
-        // Return the base price if no valid discount was found
-        if ($discount <= 0) {
+    
+        // Check if discount is already applied for this product ID
+        if (isset($discount_applied[$product_id])) {
+            echo "<pre>Discount already applied for product ID: $product_id</pre>";
             return $price;
         }
-
-        // Calculate the discounted price, ensuring the final value does not go below zero
-        return max(0, $price - $discount);
+    
+        // Cache and retrieve categories based on the parent product ID
+        if (!isset($parent_categories_cache[$product_id])) {
+            $parent_categories_cache[$product_id] = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'slugs']);
+        }
+    
+        // Retrieve categories from cache
+        $categories = $parent_categories_cache[$product_id];
+        echo "<pre>Product Categories for ID {$product_id}: ";
+        print_r($categories);
+        echo "</pre>";
+    
+        // Check if the product is in a discounted category
+        $discount_category = array_intersect(self::DISCOUNT_CATEGORIES, $categories);
+        if (empty($discount_category)) {
+            echo "<pre>Product not in discount category</pre>";
+            return $price; // No discount if the product is not in a discounted category
+        }
+    
+        // Get the first matching discount category
+        $discount_category = reset($discount_category);
+    
+        // Retrieve discount based on loyalty level and product attribute from the parent
+        $product_attribute = $parent_product->get_attribute(self::ATTRIBUTE);
+        $discount = 0;
+    
+        echo "<pre>Product Attribute - " . self::ATTRIBUTE . ": $product_attribute</pre>";
+    
+        if (strpos($product_attribute, self::VAR_1) !== false) {
+            $var_1_discount = get_option("_lp_discount_{$discount_category}_" . self::VAR_1 . "_level_$loyalty_level", 0);
+            $discount = (float) $var_1_discount;
+            echo "<pre>Discount for " . self::VAR_1 . ": $discount</pre>";
+        } elseif (strpos($product_attribute, self::VAR_2) !== false) {
+            $var_2_discount = get_option("_lp_discount_{$discount_category}_" . self::VAR_2 . "_level_$loyalty_level", 0);
+            $discount = (float) $var_2_discount;
+            echo "<pre>Discount for " . self::VAR_2 . ": $discount</pre>";
+        } else {
+            echo "<pre>No matching attribute for discount</pre>";
+        }
+    
+        // Calculate the discounted price
+        $discounted_price = max(0, $price - $discount);
+    
+        // Mark discount as applied for this product ID
+        $discount_applied[$product_id] = true;
+    
+        echo "<pre>Final Discounted Price for product ID {$product_id}: $discounted_price</pre>";
+        return $discounted_price;
     }
+    
 
 
-
-    /**
-     * Apply discounted price in WooCommerce calculations.
-     *
-     * @param float $price The original price.
-     * @param WC_Product $product The WooCommerce product object.
-     * @return float The modified price.
-     */
-    public function change_price($price, $product)
+    public function apply_discount_to_variation($price, $variation, $variable_product)
     {
-        // return $price; // No discount if not logged in
-        $user_id = get_current_user_id();
-        //left if acces will be public
-        // if (!$user_id) {
-        //     return $price; // No discount if user is not logged in
-        // }
-
-        $loyalty_level = $this->get_loyalty_level($user_id);
-
-        return $this->get_discounted_price($price, $product, $loyalty_level);
-    }
-
-    /**
-     * Modify the displayed price HTML for catalog and product pages.
-     *
-     * @param string $price_html The HTML of the price to display.
-     * @param WC_Product $product The WooCommerce product object.
-     * @return string The modified HTML price.
-     */
-    public function change_price_html($price_html, $product)
-    {
-        return $price_html;
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return $price_html; // No discount display if user is not logged in
+        // Ensure we have the original price for calculation
+        if (empty($price)) {
+            $price = $variation->get_regular_price(); // Use regular price if original is missing
         }
 
+        // Get the loyalty level for the current user
+        $user_id = get_current_user_id();
+        $loyalty_level = (new LoyaltyProgramSidebarData())->get_loyalty_data($user_id)['loyalty_level'] ?? 0;
+
+        // Apply the discount using get_discounted_price
+        $discounted_price = $this->get_discounted_price($price, $variation, $loyalty_level);
+
+        // echo "<pre>Discounted Price for variation ID {$variation->get_id()}: $discounted_price</pre>";
+        return $discounted_price;
+    }
+
+
+
+    /**
+     * Update the variation prices cache hash to force recalculation.
+     */
+    public function update_variation_prices_hash($price_hash, $product, $display)
+    {
+        $user_id = get_current_user_id();
+        $loyalty_level = $this->get_loyalty_level($user_id);
+
+        // Modify the hash based on the user's loyalty level
+        $price_hash['loyalty_level'] = $loyalty_level;
+        return $price_hash;
+    }
+
+
+
+
+    private function get_product_category($product)
+    {
+        $categories = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'slugs']);
+        foreach (self::DISCOUNT_CATEGORIES as $discount_category) {
+            if (in_array($discount_category, $categories)) {
+                return $discount_category;
+            }
+        }
+        return null;
+    }
+
+    public function change_price($price, $product)
+    {
+        // Ensure this discount only applies once
+        if ($product->get_meta('_discount_applied', true)) {
+            return $price; // Return price if discount has already been applied
+        }
+
+        $user_id = get_current_user_id();
+        $loyalty_level = $this->get_loyalty_level($user_id);
+
+        // Calculate discounted price
+        $discounted_price = $this->get_discounted_price($price, $product, $loyalty_level);
+
+        // Set the flag to prevent further discounts
+        $product->update_meta_data('_discount_applied', true);
+        $product->save_meta_data();
+
+        return $discounted_price;
+    }
+
+
+    public function change_price_html($price_html, $product)
+    {
+        $user_id = get_current_user_id();
         $loyalty_level = $this->get_loyalty_level($user_id);
         $discounted_price = $this->get_discounted_price($product->get_price(), $product, $loyalty_level);
-
-        return wc_price($discounted_price);
+        return is_numeric($discounted_price) ? wc_price($discounted_price) : $price_html;
     }
 
-    //just blank methods for testing purposes
-    public function test()
+    private function get_loyalty_level($user_id)
     {
+        return (int) get_user_meta($user_id, '_loyalty_level', true) ?: 0;
     }
 
-
+    //debug only
+    function deb()
+    {
+        $rt = $this->is_discounted_category(222);
+        return $rt;
+    }
 }
 
-$loyalty_program_service = new LoyaltyProgramService();
-
+new LoyaltyProgramService();

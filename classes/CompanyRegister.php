@@ -1,5 +1,7 @@
 <?php
 
+namespace SilkyDrum\WooCommerce;
+
 class CompanyRegister
 {
     public function __construct()
