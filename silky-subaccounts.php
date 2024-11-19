@@ -17,18 +17,20 @@ Author URI: http://al.ex/
 
 //debug function
 if (!function_exists('dd')) {
-    function dd($var, $die=true) {
+    function dd($var, $die = true)
+    {
         echo '<pre>';
-            var_dump($var);
+        print_r($var);
         echo '</pre>';
         if ($die) {
             die();
         }
-        
+
     }
 }
 
-function initialize_silky_subaccounts() {
+function initialize_silky_subaccounts()
+{
     // Autoload classes
     spl_autoload_register(function ($class) {
         $namespace = 'SilkyDrum\\WooCommerce\\';
@@ -48,9 +50,7 @@ function initialize_silky_subaccounts() {
     });
 
     // Example: Instantiate a class to ensure everything works
-    if (class_exists('SilkyDrum\WooCommerce\LoyaltyProgramService')) {
-        $service = new \SilkyDrum\WooCommerce\LoyaltyProgramService();
-    }
+
 
     if (class_exists('SilkyDrum\WooCommerce\CompanyRegister')) {
         new \SilkyDrum\WooCommerce\CompanyRegister();
@@ -70,10 +70,24 @@ function initialize_silky_subaccounts() {
     if (class_exists('SilkyDrum\WooCommerce\EmailOverrideForSubaccounts')) {
         new \SilkyDrum\WooCommerce\EmailOverrideForSubaccounts();
     }
+
     if (class_exists('SilkyDrum\WooCommerce\SetLoyaltyLevel')) {
         new \SilkyDrum\WooCommerce\SetLoyaltyLevel();
+    }
+
+    // if (class_exists('SilkyDrum\WooCommerce\LoyaltyProgramService')) {
+    //     $service = new \SilkyDrum\WooCommerce\LoyaltyProgramService();
+    // }
+
+    if (class_exists('SilkyDrum\WooCommerce\LoyaltyProgramCalculator')) {
+        new \SilkyDrum\WooCommerce\LoyaltyProgramCalculator();
     }
 }
 
 
 add_action('plugins_loaded', 'initialize_silky_subaccounts');
+
+
+
+// include 'dev.php';
+

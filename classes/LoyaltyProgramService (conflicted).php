@@ -13,14 +13,12 @@ class LoyaltyProgramService extends LoyaltyProgramDiscounts
 	{
 		add_action('woocommerce_cart_calculate_fees', [$this, 'apply_loyalty_discount']);
 		add_action('woocommerce_order_status_completed', [$this, 'update_loyalty_level'], 10, 1);
+		add_filter('woocommerce_email_order_meta', [$this, 'add_loyalty_info_to_email'], 10, 3);
 		add_filter('woocommerce_product_get_price', [$this, 'change_price'], 10, 2);
 		add_filter('woocommerce_product_get_sale_price', [$this, 'change_price'], 10, 2);
 		add_filter('woocommerce_get_price_html', [$this, 'change_price_html'], 10, 2);
 		add_filter('woocommerce_variation_prices_price', [$this, 'apply_discount_to_variation'], 10, 3);
 		add_filter('woocommerce_variation_prices_sale_price', [$this, 'apply_discount_to_variation'], 10, 3);
-		add_filter('woocommerce_variable_price_html', [$this, 'modify_variable_price_html'], 10, 2);
-
-		//----
 		add_filter('woocommerce_get_variation_prices_hash', [$this, 'update_variation_prices_hash'], 10, 3);
 	}
 
@@ -51,34 +49,25 @@ class LoyaltyProgramService extends LoyaltyProgramDiscounts
 		}
 	}
 
+
+	//todo remove if not used
 	private function is_discounted_category($product)
 	{
-		$categories = $this->prod_categories($product->get_id());
+		$categories = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'slugs']);
 		return !empty(array_intersect(self::DISCOUNT_CATEGORIES, $categories));
-	}
-
-	private function prod_categories($product_id = null)
-	{
-		if (!$product_id) {
-			global $post;
-			$product_id = $post->ID ?? 0;
-		}
-
-		$categories = get_the_terms($product_id, 'product_cat');
-		if (!$categories || is_wp_error($categories)) {
-			return [];
-		}
-
-		return wp_list_pluck($categories, 'slug');
 	}
 
 	private function get_discount_category($product)
 	{
-		$categories = $this->prod_categories($product->get_id());
+		$product_id = $product instanceof WC_Product_Variation
+			? $product->get_parent_id()
+			: $product->get_id();
+		$categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'slugs']);
 		return !empty(array_intersect(self::DISCOUNT_CATEGORIES, $categories))
 			? reset($categories)
 			: null;
 	}
+
 
 	public function get_discounted_price($price, $product, $loyalty_level)
 	{
@@ -90,18 +79,19 @@ class LoyaltyProgramService extends LoyaltyProgramDiscounts
 			? $product->get_parent_id()
 			: $product->get_id();
 
-		$categories = $this->prod_categories($product_id);
-
-		$intersected_categories = array_intersect(self::DISCOUNT_CATEGORIES, $categories);
-		$discount_category = reset($intersected_categories); // Fixed line
-
-		if (!$discount_category) {
+		$categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'slugs']);
+		$discount_category = array_intersect(self::DISCOUNT_CATEGORIES, $categories);
+		if (empty($discount_category)) {
 			return $price;
 		}
 
-		$product_attribute = $product->get_attribute(self::ATTRIBUTE);
+		$discount_category = reset($discount_category);
+		$product_attribute = $product instanceof WC_Product_Variation
+			? wc_get_product($product_id)->get_attribute(self::ATTRIBUTE)
+			: $product->get_attribute(self::ATTRIBUTE);
 
 		$discount = 0;
+
 		if (strpos($product_attribute, self::VAR_1) !== false) {
 			$discount = (float) get_option("_lp_discount_{$discount_category}_" . self::VAR_1 . "_level_$loyalty_level", 0);
 		} elseif (strpos($product_attribute, self::VAR_2) !== false) {
@@ -110,7 +100,6 @@ class LoyaltyProgramService extends LoyaltyProgramDiscounts
 
 		return max(0, $price - $discount);
 	}
-
 
 	public function apply_discount_to_variation($price, $product, $variation_id)
 	{
@@ -163,110 +152,113 @@ class LoyaltyProgramService extends LoyaltyProgramDiscounts
 
 	public function change_price($price, $product)
 	{
-		if ($product->is_type('variable')) {
-			return $this->get_variation_price($product);
-		}
-
 		$user_id = get_current_user_id();
 		$loyalty_level = $this->get_loyalty_level($user_id);
 
+		if ($product->is_type('variable')) {
+			return $this->apply_discount_to_variation($price, $product, null);
+		}
+
 		return $this->get_discounted_price($price, $product, $loyalty_level);
+	}
+
+
+
+	public function get_variation_price($product)
+	{
+		global $product;
+		if (!$product->is_type('variable')) {
+			//return price of product if not a variable
+			return $product->get_price();
+			// dd('NOT VARIATION PRICE');
+		}
+		// if ($product->is_type('variable')) {
+
+		//product is a variable
+
+		// Get all variation IDs
+		$variations = $product->get_children();
+		// dd($variations);
+		$prices = [];
+
+
+		// global $woocommerce;
+		// $product_variation = new $variations;
+		// // $regular_price = $product_variation->regular_price;
+		// dd($product_variation );
+
+		//loop through all variations and store their prices
+		foreach ($variations as $variation_id) {
+			$variation = wc_get_product($variation_id);
+			//dd($variation);//WC_Product_Variation Object
+			// global $woocommerce;
+			// $product_variation = new WC_Product_Variation($_POST['variation_id']);
+			// $regular_price = $product_variation->regular_price;
+			$price = $variation->get_regular_price();
+			// dd($price,false);
+			$discounted_category = $this->is_discounted_category($product);
+			// dd($discounted_category,false);
+			$artibute = get_variation_attributes();
+			$artibute = wc_get_product_variation_attributes( $variation_id );
+			dd($artibute,false);
+
+
+
+
+
+			// if ($variation instanceof WC_Product_Variation) {
+			//     // Get the price of the variation
+			//     $price = $variation->get_regular_price();
+			//     $prices[$variation_id] = $price; // Store variation prices
+			// }
+		}
+
+		// foreach ($variations as $variation_id) {
+		// 	$variation = wc_get_product($variation_id);
+		// 	if ($variation instanceof WC_Product_Variation) {
+		// 		// Get the price of the variation
+		// 		$price = $variation->get_regular_price();
+		// 		$prices[$variation_id] = $price; // Store variation prices
+		// 	}
+		// }
+
+		// Find the lowest price variation
+		if (!empty($prices)) {
+			$lowest_variation_id = array_keys($prices, min($prices))[0];
+			$lowest_variation = wc_get_product($lowest_variation_id);
+
+			if ($lowest_variation instanceof WC_Product_Variation) {
+				// Apply discount logic to the lowest price variation
+				$discount = 0;
+				$product_attribute = $lowest_variation->get_attribute(self::ATTRIBUTE);
+				$discount_category = $this->get_discount_category($product);
+
+				if ($discount_category && strpos($product_attribute, self::VAR_1) !== false) {
+					$discount = (float) get_option("_lp_discount_{$discount_category}_" . self::VAR_1 . "_level_1", 0);
+				} elseif ($discount_category && strpos($product_attribute, self::VAR_2) !== false) {
+					$discount = (float) get_option("_lp_discount_{$discount_category}_" . self::VAR_2 . "_level_1", 0);
+				}
+
+				// dd( $discount_category );
+
+				return max(0, $lowest_variation->get_price() - $discount);
+			}
+		}
+		// }
+
+		// For simple products or others, return the product's price
+		//return $product->get_price();
 	}
 
 	public function change_price_html($price_html, $product)
 	{
 		$discounted_price = $this->get_variation_price($product);
+
+		// Format the price for WooCommerce display
 		return is_numeric($discounted_price) ? wc_price($discounted_price) : $price_html;
 	}
 
-	public function get_variation_price($product)
-	{
-		if (!$product->is_type('variable')) {
-			return $product->get_price();
-		}
 
-		$variations = $product->get_children();
-		foreach ($variations as $variation_id) {
-			$variation = wc_get_product($variation_id);
-
-			$attribute = $variation->get_attribute(self::ATTRIBUTE);
-			$user_id = get_current_user_id();
-			$level = $this->get_loyalty_level($user_id) ?: 1;
-
-			foreach (self::DISCOUNT_CATEGORIES as $category) {
-				if (in_array($category, $this->prod_categories($product->get_id()))) {
-
-					$discount = 0;
-
-					if ($attribute == self::VAR_1) {
-						$discount = get_option("_lp_discount_{$category}_" . self::VAR_1 . "_level_$level", 0);
-					} elseif ($attribute == self::VAR_2) {
-						$discount = get_option("_lp_discount_{$category}_" . self::VAR_2 . "_level_$level", 0);
-					}
-
-
-					//debugging
-					// dd('discount categories: ', false);
-					// dd(self::DISCOUNT_CATEGORIES, false);
-					// //output Array
-					// // (
-					// //     [0] => novinki
-					// //     [1] => espresso
-					// // )
-					// dd('prod categories: ', false);
-					// dd($this->prod_categories($product->get_id()), false);
-					// //output Array
-					// // (
-					// //     [0] => filtr
-					// //     [1] => espresso
-					// // )
-					// dd('prod attr:' . $attribute, false);//1kg
-					// dd('price: ' . $variation->get_price(), false);//output 1000
-					// dd('discount: ' . $discount, false);//output 30
-
-					return $variation->get_price() - $discount;
-				}
-			}
-		}
-
-		return $product->get_price();
-	}
-
-	function modify_variable_price_html($price_html, $product)
-	{
-		// Ensure the product is a variable product
-		if ($product->is_type('variable')) {
-			$variations = $product->get_children();
-			foreach ($variations as $variation_id) {
-				$variation = wc_get_product($variation_id);
-
-				$attribute = $variation->get_attribute(self::ATTRIBUTE);
-				$user_id = get_current_user_id();
-				$level = $this->get_loyalty_level($user_id) ?: 1;
-
-				foreach (self::DISCOUNT_CATEGORIES as $category) {
-					if (in_array($category, $this->prod_categories($product->get_id()))) {
-
-
-						$discount = 0;
-
-						if ($attribute == self::VAR_1) {
-							$discount = get_option("_lp_discount_{$category}_" . self::VAR_1 . "_level_$level", 0);
-						} elseif ($attribute == self::VAR_2) {
-							$discount = get_option("_lp_discount_{$category}_" . self::VAR_2 . "_level_$level", 0);
-						}
-
-						$price_html = $variation->get_price() - $discount;
-						return $price_html;
-					}
-				}
-				return $price_html;
-			}
-
-		}
-
-		return $price_html;
-	}
 
 }
 

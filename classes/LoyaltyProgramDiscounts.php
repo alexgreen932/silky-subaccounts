@@ -14,7 +14,7 @@ class LoyaltyProgramDiscounts
     ];
 
     // Default discounts if none are saved
-    private $default_discounts = [
+    protected $default_discounts = [
         1 => [6, 30],
         2 => [13, 60],
         3 => [24, 100]
